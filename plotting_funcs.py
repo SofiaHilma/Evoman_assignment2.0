@@ -82,9 +82,9 @@ def plot_avg_diversity(enemies, folder=None, ax=None, legend=True):
     
     # Read diversity data
     for enemy in enemies:
-        enemy_elitist = pd.read_csv(f'{folder}/enemy_{enemy}/elitist_div_enemy{enemy}.csv')
+        enemy_elitist = pd.read_csv(f'{folder}/elitist_div_enemy{enemy}.csv')
         elitist = pd.concat([elitist,enemy_elitist])
-        enemy_diverse = pd.read_csv(f'{folder}/enemy_{enemy}/diverse_div_enemy{enemy}.csv')
+        enemy_diverse = pd.read_csv(f'{folder}/diverse_div_enemy{enemy}.csv')
         diverse = pd.concat([diverse,enemy_diverse])
 
     # Average all data

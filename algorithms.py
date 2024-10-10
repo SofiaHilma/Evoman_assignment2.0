@@ -13,14 +13,14 @@ from demo_controller import player_controller
 
 
 class Evolution:
-    def __init__(self, enemy=[1], n_neurons=10, low_weight=-1, upp_weight=1, pop_size=100, max_gens=30):
+    def __init__(self, enemy=[1], multiplemode='no', n_neurons=10, low_weight=-1, upp_weight=1, pop_size=100, max_gens=30):
         self.enemy = enemy
         self.n_neurons = n_neurons
         self.low_weight = low_weight
         self.upp_weight = upp_weight
         self.pop_size = pop_size
         self.max_gens = max_gens
-        self.env = Environment(enemies=enemy, logs="off", savelogs="no", player_controller=player_controller(n_neurons))
+        self.env = Environment(enemies=enemy, multiplemode=multiplemode, logs="off", savelogs="no", player_controller=player_controller(n_neurons))
         # Initialize population
         self.population = self.create_population()
         self.best_individual = None
@@ -140,8 +140,8 @@ class Evolution:
 
 
 class Algorithm_Elitist(Evolution):
-    def __init__(self, enemy=[1], n_neurons=10, low_weight=-1, upp_weight=1, pop_size=100, max_gens=30):
-        super().__init__(enemy=enemy, n_neurons=n_neurons, low_weight=low_weight,
+    def __init__(self, enemy=[1], multiplemode='no',n_neurons=10, low_weight=-1, upp_weight=1, pop_size=100, max_gens=30):
+        super().__init__(enemy=enemy, multiplemode=multiplemode,n_neurons=n_neurons, low_weight=low_weight,
                          upp_weight=upp_weight, pop_size=pop_size, max_gens=max_gens)
 
     def elitist_selection(self, population, fitness, n_parents):
@@ -208,13 +208,11 @@ class Algorithm_Elitist(Evolution):
 
 
 class Algorithm_Diverse(Evolution):
-    def __init__(self, enemy=[1], n_neurons=10, low_weight=-1, upp_weight=1, pop_size=100, max_gens=30, 
-                 initial_step_size=0.1, tau=None):
-        # Call the superclass __init__ method to initialize population and other attributes
-        super().__init__(enemy=enemy, n_neurons=n_neurons, low_weight=low_weight,
+    def __init__(self, enemy=[1], multiplemode='no',n_neurons=10, low_weight=-1, upp_weight=1, pop_size=100, max_gens=30, initial_step_size=0.1, tau=None):
+        self.initial_step_size = initial_step_size
+        super().__init__(enemy=enemy, multiplemode=multiplemode,n_neurons=n_neurons, low_weight=low_weight,
                          upp_weight=upp_weight, pop_size=pop_size, max_gens=max_gens)
         self.diversity_over_time = []
-        self.initial_step_size = initial_step_size
         self.tau = tau if tau is not None else 1 / np.sqrt(self.n_vars) # Learning rate
 
     def create_population(self):
