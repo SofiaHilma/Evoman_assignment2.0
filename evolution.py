@@ -16,6 +16,8 @@ enemy_list = [1,2,3]
 n_runs = 10
 max_gens = 30
 
+os.environ['SDL_VIDEODRIVER'] = 'dummy'
+
 folder = 'experiments'
 if not os.path.exists(folder):
     os.makedirs(folder)
@@ -96,8 +98,6 @@ for enemy in enemy_list:
         print('Running Diverse Algorithm...')
         diverse_algorithm.evolve(
             parent_selection=diverse_algorithm.fitness_sharing,
-            crossover=diverse_algorithm.crossover,
-            mutation=diverse_algorithm.mutation,
             survival_selection=diverse_algorithm.roulette_wheel_selection,
             track_diversity=True
         )

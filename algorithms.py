@@ -10,6 +10,8 @@ rcParams['font.size']=17
 from evoman.environment import Environment
 from demo_controller import player_controller
 
+os.environ['SDL_VIDEODRIVER'] = 'dummy'
+
 
 
 class Evolution:
@@ -20,7 +22,7 @@ class Evolution:
         self.upp_weight = upp_weight
         self.pop_size = pop_size
         self.max_gens = max_gens
-        self.env = Environment(enemies=enemy, logs="off", savelogs="no", player_controller=player_controller(n_neurons))
+        self.env = Environment(enemies=enemy, logs="off", savelogs="no", player_controller=player_controller(n_neurons), visuals=False)
         # Initialize population
         self.population = self.create_population()
         self.best_individual = None
@@ -210,11 +212,10 @@ class Algorithm_Elitist(Evolution):
 class Algorithm_Diverse(Evolution):
     def __init__(self, enemy=[1], n_neurons=10, low_weight=-1, upp_weight=1, pop_size=100, max_gens=30, 
                  initial_step_size=0.1, tau=None):
-        # Call the superclass __init__ method to initialize population and other attributes
+        self.initial_step_size = initial_step_size  # Set this before calling super().__init__
         super().__init__(enemy=enemy, n_neurons=n_neurons, low_weight=low_weight,
                          upp_weight=upp_weight, pop_size=pop_size, max_gens=max_gens)
         self.diversity_over_time = []
-        self.initial_step_size = initial_step_size
         self.tau = tau if tau is not None else 1 / np.sqrt(self.n_vars) # Learning rate
 
     def create_population(self):
