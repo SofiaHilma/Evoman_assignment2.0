@@ -11,16 +11,16 @@ from evoman.environment import Environment
 from demo_controller import player_controller
 
 
-
+# We do one class for both algorithms now!!!!!
 class Evolution:
-    def __init__(self, enemy=[1], n_neurons=10, low_weight=-1, upp_weight=1, pop_size=100, max_gens=30):
+    def __init__(self, enemy=[1], multiplemode = "no", n_neurons=10, low_weight=-1, upp_weight=1, pop_size=100, max_gens=30):
         self.enemy = enemy
         self.n_neurons = n_neurons
         self.low_weight = low_weight
         self.upp_weight = upp_weight
         self.pop_size = pop_size
         self.max_gens = max_gens
-        self.env = Environment(enemies=enemy, logs="off", savelogs="no", player_controller=player_controller(n_neurons))
+        self.env = Environment(enemies=enemy, multiplemode = "no", logs="off", savelogs="no", player_controller=player_controller(n_neurons))
         # Initialize population
         self.population = self.create_population()
         self.best_individual = None
@@ -57,8 +57,274 @@ class Evolution:
 
         return np.array(pop_fitness)
     
-    def evolve(self, parent_selection, crossover, mutation, survival_selection, n_parents=10, mutation_rate=0.2,
+    
+    
+    '''def __init__(self, enemy=[1], multiplemode = "no", n_neurons=10, low_weight=-1, upp_weight=1, pop_size=100, max_gens=30):
+        super().__init__(enemy=enemy, multiplemode=multiplemode, n_neurons=n_neurons, low_weight=low_weight,
+                         upp_weight=upp_weight, pop_size=pop_size, max_gens=max_gens)'''
+
+    def roulette_wheel_selection(self, population, fitness, n_parents):
+        """
+        Roulette wheel selection (fitness-proportional selection).
+        Selects individuals based on their fitness proportionally.
+        Returns the selected individuals in a list.
+        """
+        # Ensure the population is a NumPy array
+        population = np.array(population)
+
+        # Normalise fitness values
+        mean_fitness = np.mean(fitness) # Calculate mean and standard deviation of fitnesses
+        std_fitness = np.std(fitness)
+        if std_fitness > 0:
+            normalised_fitness = (fitness - mean_fitness) / std_fitness
+        else:
+            normalised_fitness = np.zeros(len(fitness))  # If std is zero, reset all fitnesses to zero
+
+        # Ensure normalised fitness values are non-negative
+        fitness = np.maximum(normalised_fitness, 0)
+
+        # Calculate probabilities for each individual to be selected
+        total_fitness = np.sum(fitness)
+        if total_fitness == 0: 
+            # If total fitness is zero use uniform random selection
+            probabilities = np.ones(len(fitness)) / len(fitness)
+        else:
+            # Otherwise calculate the probabilities proportional to fitness
+            probabilities = fitness / total_fitness
+
+        # Perform roulette wheel selection based on the calculated probabilities
+        selected_indices = np.random.choice(len(population), size=n_parents, p=probabilities, replace=True)
+
+        return population[selected_indices]
+
+
+
+    # Uniform crossover
+    def basic_crossover(self, parents, n_offspring):
+        """
+        Each gene is randomly chosen from any parent.
+        'parents' is a list of parent genomes.
+        Returns n_offspring children.
+        """
+        num_parents = len(parents)
+        genome_length = len(parents[0])
+
+        # Create an empty array to store the offspring
+        data_type = parents[0].dtype
+        offspring = np.zeros((n_offspring, genome_length), dtype=data_type)
+
+        # Loop over each offspring to generate one at a time
+        for i in range(n_offspring):
+            child = np.zeros(genome_length, dtype=data_type)
+
+            # Loop over each gene in the genome
+            for gene in range(genome_length):
+                # Randomly select a parent
+                parent_index = np.random.randint(num_parents)
+                child[gene] = parents[parent_index][gene]
+                
+            # Add the child to the offspring
+            offspring[i] = child
+        return offspring
+    
+    
+    # Uniform mutation 
+    def basic_mutation(self, individual, mutation_rate):
+        """
+        Each gene has a mutation_rate chance of being replaced with a new random value.
+        """
+
+        # Loop over each gene in the genome        
+        for i in range(len(individual)):
+            if np.random.rand() < mutation_rate:
+                # Replace the gene with a new random value within the valid range
+                individual[i] = np.random.uniform(self.low_weight, self.upp_weight)
+        return individual
+    
+
+    # Triggered Diversity: doomsday methods below
+
+    # selection, crossover and mutation methods should be the same as in diverse alg??
+    # And the trigger and calling is in the evolve method
+
+
+### Diverse algorithm
+    #def __init__(self, enemy=[1], multiplemode = "no", n_neurons=10, low_weight=-1, upp_weight=1, pop_size=100, max_gens=30):
+        # Call the superclass __init__ method to initialize population and other attributes
+     #   super().__init__(enemy=enemy, multiplemode=multiplemode, n_neurons=n_neurons, low_weight=low_weight,
+      #                   upp_weight=upp_weight, pop_size=pop_size, max_gens=max_gens)
+       # self.diversity_over_time = []
+
+    def fitness_sharing(self, population, fitness, n_parents, sigma_share=0.3):
+        n_parents = min(n_parents, len(population))
+        shared_fitness = np.copy(fitness)
+        for i in range(len(population)):
+            niche_count = sum(max(0, 1 - (np.linalg.norm(population[i] - population[j]) / sigma_share)**2)
+                            for j in range(len(population)))
+            shared_fitness[i] = max(1e-10, shared_fitness[i] / max(1, niche_count))  # Ensure non-negative values
+
+        total_fitness = np.sum(shared_fitness)
+        probabilities = shared_fitness / total_fitness
+
+        # Ensure there are no negative probabilities
+        min_prob = 1e-10
+        probabilities = np.maximum(probabilities, min_prob)
+        probabilities /= np.sum(probabilities) # Normalize probabilities
+
+        try:
+            selected_indices = np.random.choice(len(population), size=n_parents, p=probabilities, replace=False)
+
+        except ValueError:
+            selected_indices = np.random.choice(len(population), size=n_parents, p=probabilities, replace=True)
+
+        return population[selected_indices]
+
+    '''def roulette_wheel_selection(self, population, fitness, n_parents):
+        """
+        Roulette wheel selection (fitness-proportional selection).
+        Selects individuals based on their fitness proportionally.
+        """
+        # Ensure the population is a NumPy array
+        population = np.array(population)
+
+        # Ensure fitness values are non-negative
+        fitness = np.maximum(fitness, 0)  # This makes all negative fitness values zero
+
+        # Calculate total fitness
+        total_fitness = np.sum(fitness)
+
+        # If total fitness is zero, use uniform random selection
+        if total_fitness == 0:
+            probabilities = np.ones(len(fitness)) / len(fitness)
+        else:
+            # Otherwise, calculate the probabilities proportional to fitness
+            probabilities = fitness / total_fitness
+
+        # Perform roulette wheel selection based on the calculated probabilities
+        selected_indices = np.random.choice(len(population), size=n_parents, p=probabilities, replace=True)
+
+        # Return the selected individuals, ensuring population is indexed as a NumPy array
+        return population[selected_indices]'''
+
+
+    def diverse_crossover(self, parents, n_offspring):
+        # Generate pool from parents
+        gene_pool = [[] for _ in range(len(parents[0]))]
+        for parent in parents:
+            for gene in range(len(parent)):
+                gene_pool[gene].append(parent[gene])
+
+        offspring = [[] for _ in range(n_offspring)]
+
+        # Create children from pool
+        for child in range(n_offspring):
+            for gene in range(len(parents[0])):
+                offspring[child].append(np.random.choice(gene_pool[gene]))
+
+        return np.array(offspring)
+
+    def diverse_mutation(self, individual, mutation_rate, scale=0.4):
+        # Implement mutation with a Cauchy distribution
+        for i in range(len(individual)):
+            if np.random.random() < mutation_rate:
+                individual[i] += np.random.standard_cauchy() * scale
+                individual[i] = np.clip(individual[i], self.low_weight, self.upp_weight)
+        return individual
+    
+
+    def triggered_diverse_evolve(self, n_parents=10, mutation_rate=0.2,
                track_diversity=True):
+        """Performs evolutionary algorithm with optional diversity tracking."""
+        if track_diversity:
+            self.track_diversity(self.population, generation=0)
+        
+        counter = 0
+        for generation in range(1, self.max_gens + 1):
+
+            if counter == 3:
+                # Trigger diversity
+                # Step 1: Evaluate fitness of the current population
+                fitness_values = self.simulate()  # Method to evaluate population (assumed in Evolution)
+
+                # Step 2: Select parents using the specified selection method
+                parents = self.fitness_sharing(self.population, fitness_values, n_parents=n_parents)
+
+                # Step 2: Generate Offspring via Crossover
+                offspring = self.diverse_crossover(parents, n_offspring=self.pop_size)
+
+                # Step 3: Mutate the Offspring
+                mutated_offspring = []
+                for child in offspring:
+                    mutated_child = self.diverse_mutation(child, mutation_rate=mutation_rate)  # Apply mutation
+                    mutated_offspring.append(mutated_child)
+
+                mutated_offspring = np.array(mutated_offspring)
+
+                # Step 4: Evaluate fitness of offspring
+                offspring_fitness = self.simulate(mutated_offspring)
+
+                # Step 5: Combine current population and offspring for survival selection
+                combined_population = np.vstack((self.population, mutated_offspring))
+                combined_fitness = np.concatenate((fitness_values, offspring_fitness))
+
+                # Step 6: Survivor Selection (use the specified method for replacement)
+                self.population = self.roulette_wheel_selection(combined_population, combined_fitness, n_parents=self.pop_size)
+
+                # Step 6: Track fitness metrics
+                self.track_fitness(combined_fitness[:self.pop_size])
+
+                # Optional: Track genetic diversity metrics
+                if track_diversity:
+                    self.track_diversity(self.population, generation)
+                counter = 0
+
+            else: 
+                # Step 1: Evaluate fitness of the current population
+                fitness_values = self.simulate()  # Method to evaluate population (assumed in Evolution)
+
+                # Step 2: Select parents using the specified selection method
+                parents = self.roulette_wheel_selection(self.population, fitness_values, n_parents=n_parents)
+
+                # Step 2: Generate Offspring via Crossover
+                offspring = self.basic_crossover(parents, n_offspring=self.pop_size)
+
+                # Step 3: Mutate the Offspring
+                mutated_offspring = []
+                for child in offspring:
+                    mutated_child = self.basic_mutation(child, mutation_rate=mutation_rate)  # Apply mutation
+                    mutated_offspring.append(mutated_child)
+
+                mutated_offspring = np.array(mutated_offspring)
+
+                # Step 4: Evaluate fitness of offspring
+                offspring_fitness = self.simulate(mutated_offspring)
+
+                # Step 5: Combine current population and offspring for survival selection
+                combined_population = np.vstack((self.population, mutated_offspring))
+                combined_fitness = np.concatenate((fitness_values, offspring_fitness))
+
+                # Step 6: Survivor Selection (use the specified method for replacement)
+                self.population = self.roulette_wheel_selection(combined_population, combined_fitness, n_parents=self.pop_size)
+
+                # Step 6: Track fitness metrics
+                self.track_fitness(combined_fitness[:self.pop_size])
+
+                # Optional: Track genetic diversity metrics
+                if track_diversity:
+                    self.track_diversity(self.population, generation)
+
+                # If the fitness hasn't improved more than?? and if the fitness is below 90 add to the counter
+                if len(self.mean_fitness_over_time) > 1:  # Check if there are at least two elements
+                    if abs(self.mean_fitness_over_time[-1] - self.mean_fitness_over_time[-2]) < 5 and self.mean_fitness_over_time[-1]<90:
+                        counter += 1 
+                    
+        best_index = np.argsort(combined_fitness[:self.pop_size])[-1:]
+        self.best_individual = [self.population[best_index],combined_fitness[best_index]]
+
+    
+    #def diverse_evolve(self, parent_selection, crossover, mutation, survival_selection, n_parents=10, mutation_rate=0.2, track_diversity=True):
+    def diverse_evolve(self, n_parents=10, mutation_rate=0.2, track_diversity=True):
+    
         """Performs evolutionary algorithm with optional diversity tracking."""
         if track_diversity:
             self.track_diversity(self.population, generation=0)
@@ -68,15 +334,15 @@ class Evolution:
             fitness_values = self.simulate()  # Method to evaluate population (assumed in Evolution)
 
             # Step 2: Select parents using the specified selection method
-            parents = parent_selection(self.population, fitness_values, n_parents=n_parents)
+            parents = self.fitness_sharing(self.population, fitness_values, n_parents=n_parents)
 
             # Step 2: Generate Offspring via Crossover
-            offspring = crossover(parents, n_offspring=self.pop_size)
+            offspring = self.diverse_crossover(parents, n_offspring=self.pop_size)
 
             # Step 3: Mutate the Offspring
             mutated_offspring = []
             for child in offspring:
-                mutated_child = mutation(child, mutation_rate=mutation_rate)  # Apply mutation
+                mutated_child = self.diverse_mutation(child, mutation_rate=mutation_rate)  # Apply mutation
                 mutated_offspring.append(mutated_child)
 
             mutated_offspring = np.array(mutated_offspring)
@@ -89,7 +355,7 @@ class Evolution:
             combined_fitness = np.concatenate((fitness_values, offspring_fitness))
 
             # Step 6: Survivor Selection (use the specified method for replacement)
-            self.population = survival_selection(combined_population, combined_fitness, n_parents=self.pop_size)
+            self.population = self.roulette_wheel_selection(combined_population, combined_fitness, n_parents=self.pop_size)
 
             # Step 6: Track fitness metrics
             self.track_fitness(combined_fitness[:self.pop_size])
@@ -100,6 +366,8 @@ class Evolution:
 
         best_index = np.argsort(combined_fitness[:self.pop_size])[-1:]
         self.best_individual = [self.population[best_index],combined_fitness[best_index]]
+
+
 
     def calculate_population_diversity(self, population):
         """Calculates the genetic diversity of the population using mean pairwise Euclidean distance and variance."""
@@ -138,155 +406,4 @@ class Evolution:
         self.std_fitness_over_time.append(std_fitness)
 
 
-
-class Algorithm_Elitist(Evolution):
-    def __init__(self, enemy=[1], n_neurons=10, low_weight=-1, upp_weight=1, pop_size=100, max_gens=30):
-        super().__init__(enemy=enemy, n_neurons=n_neurons, low_weight=low_weight,
-                         upp_weight=upp_weight, pop_size=pop_size, max_gens=max_gens)
-
-    def elitist_selection(self, population, fitness, n_parents):
-        """
-        Selects the n_parents best individuals based on fitness.
-        Can be used for both parent selection and survival selection.
-        """
-        sorted_indices = np.argsort(fitness)[-n_parents:]
-        return population[sorted_indices]
-
-    ### 2. Tournament Selection Method ###
-    def tournament_selection(self, population, fitness, n_parents, tournament_size=3):
-        selected = []
-
-        for _ in range(n_parents):
-            tournament_indices = np.random.randint(0, len(population), size=tournament_size)
-            best_in_tournament = tournament_indices[np.argmax(fitness[tournament_indices])]
-            selected.append(population[best_in_tournament])
-        return np.array(selected)
-
-    def uniform_mutation(self, individual, mutation_rate):
-
-        for i in range(len(individual)):
-            if np.random.rand() < mutation_rate:
-                # Replace the gene with a new random value within the valid range
-                individual[i] = np.random.uniform(self.low_weight, self.upp_weight)
-        return individual
-
-    # Multi-parent-multi-point crossover
-    def crossover(self, parents, n_offspring):
-        """
-        Performs a multi-parent-multi-point crossover.
-        Returns the required number of children.
-        """
-        num_parents = len(parents)
-        genome_length = len(parents[0])
-
-        num_cross_points = min(2 * num_parents - 1, genome_length // 2)
-
-        offspring = np.zeros((n_offspring, genome_length))
-
-        for i in range(n_offspring):
-            crossover_points = np.sort(np.random.choice(range(1, genome_length), num_cross_points, replace=False))
-            # Ensure that crossover points are at least a few units apart (optional):
-            crossover_points = np.unique(np.clip(crossover_points, 1, genome_length - 2))
-
-            current_parent_index = np.random.randint(len(parents))
-            current_parent = parents[current_parent_index]
-
-            child = np.zeros(genome_length)
-            prev_point = 0
-
-            for point in crossover_points:
-                child[prev_point:point] = current_parent[prev_point:point]
-                prev_point = point
-                current_parent_index = (current_parent_index + 1) % len(parents)
-                current_parent = parents[current_parent_index]
-
-            child[prev_point:] = current_parent[prev_point:]
-            offspring[i] = child
-
-        return offspring
-
-
-
-class Algorithm_Diverse(Evolution):
-    def __init__(self, enemy=[1], n_neurons=10, low_weight=-1, upp_weight=1, pop_size=100, max_gens=30):
-        # Call the superclass __init__ method to initialize population and other attributes
-        super().__init__(enemy=enemy, n_neurons=n_neurons, low_weight=low_weight,
-                         upp_weight=upp_weight, pop_size=pop_size, max_gens=max_gens)
-        self.diversity_over_time = []
-
-    def fitness_sharing(self, population, fitness, n_parents, sigma_share=0.3):
-        n_parents = min(n_parents, len(population))
-        shared_fitness = np.copy(fitness)
-        for i in range(len(population)):
-            niche_count = sum(max(0, 1 - (np.linalg.norm(population[i] - population[j]) / sigma_share)**2)
-                            for j in range(len(population)))
-            shared_fitness[i] = max(1e-10, shared_fitness[i] / max(1, niche_count))  # Ensure non-negative values
-
-        total_fitness = np.sum(shared_fitness)
-        probabilities = shared_fitness / total_fitness
-
-        # Ensure there are no negative probabilities
-        min_prob = 1e-10
-        probabilities = np.maximum(probabilities, min_prob)
-        probabilities /= np.sum(probabilities) # Normalize probabilities
-
-        try:
-            selected_indices = np.random.choice(len(population), size=n_parents, p=probabilities, replace=False)
-
-        except ValueError:
-            selected_indices = np.random.choice(len(population), size=n_parents, p=probabilities, replace=True)
-
-        return population[selected_indices]
-
-    def roulette_wheel_selection(self, population, fitness, n_parents):
-        """
-        Roulette wheel selection (fitness-proportional selection).
-        Selects individuals based on their fitness proportionally.
-        """
-        # Ensure the population is a NumPy array
-        population = np.array(population)
-
-        # Ensure fitness values are non-negative
-        fitness = np.maximum(fitness, 0)  # This makes all negative fitness values zero
-
-        # Calculate total fitness
-        total_fitness = np.sum(fitness)
-
-        # If total fitness is zero, use uniform random selection
-        if total_fitness == 0:
-            probabilities = np.ones(len(fitness)) / len(fitness)
-        else:
-            # Otherwise, calculate the probabilities proportional to fitness
-            probabilities = fitness / total_fitness
-
-        # Perform roulette wheel selection based on the calculated probabilities
-        selected_indices = np.random.choice(len(population), size=n_parents, p=probabilities, replace=True)
-
-        # Return the selected individuals, ensuring population is indexed as a NumPy array
-        return population[selected_indices]
-
-
-    def mutation(self, individual, mutation_rate, scale=0.4):
-        # Implement mutation with a Cauchy distribution
-        for i in range(len(individual)):
-            if np.random.random() < mutation_rate:
-                individual[i] += np.random.standard_cauchy() * scale
-                individual[i] = np.clip(individual[i], self.low_weight, self.upp_weight)
-        return individual
-
-    def crossover(self, parents, n_offspring):
-        # Generate pool from parents
-        gene_pool = [[] for _ in range(len(parents[0]))]
-        for parent in parents:
-            for gene in range(len(parent)):
-                gene_pool[gene].append(parent[gene])
-
-        offspring = [[] for _ in range(n_offspring)]
-
-        # Create children from pool
-        for child in range(n_offspring):
-            for gene in range(len(parents[0])):
-                offspring[child].append(np.random.choice(gene_pool[gene]))
-
-        return np.array(offspring)
 
