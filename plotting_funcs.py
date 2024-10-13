@@ -105,7 +105,7 @@ def plot_avg_diversity(enemies, folder=None, ax=None, legend=True):
         plt.grid(True)
         plt.show()
 
-        plt.savefig(f'{folder}/diversity_plot.png', bbox_inches='tight')
+        plt.savefig(f'{folder}/diversity_plot_entropy.png', bbox_inches='tight')
         plt.close()
     else:
         ax.plot(mean_elitist_div.index, mean_elitist_div.values, label='Elitist', color='indianred')
@@ -117,4 +117,4 @@ def plot_avg_diversity(enemies, folder=None, ax=None, legend=True):
             ax.legend()
         ax.grid(True)
 
-        return ax
+    return ax

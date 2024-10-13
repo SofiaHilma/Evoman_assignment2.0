@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
+from scipy.stats import entropy
 from scipy.spatial.distance import pdist, squareform
 rcParams['font.family'] = "serif"     
 rcParams['font.size']=17
@@ -117,15 +118,25 @@ class Evolution:
         mean_pairwise_distance = np.mean(pairwise_distances) if pairwise_distances else 0
         variance_diversity = np.var(population, axis=0).mean()
 
-        return mean_pairwise_distance, variance_diversity
+        # Entropy based measure
+        num_bins = 10 
+        entropies = []
+        for gene in range(population.shape[1]):
+            hist, _ = np.histogram(population[:, gene], bins=num_bins)
+            gene_entropy = entropy(hist)
+            entropies.append(gene_entropy)
+        entropy_diversity = np.mean(entropies)
+
+        return mean_pairwise_distance, variance_diversity, entropy_diversity
 
     def track_diversity(self, population, generation):
         """Tracks genetic diversity metrics for plotting later."""
-        mean_pairwise_distance, variance_diversity = self.calculate_population_diversity(population)
+        mean_pairwise_distance, variance_diversity, entropy_diversity = self.calculate_population_diversity(population)
         self.diversity_over_time.append({
             'generation': generation,
             'mean_pairwise_distance': mean_pairwise_distance,
-            'variance_diversity': variance_diversity
+            'variance_diversity': variance_diversity,
+            'entropy_diversity': entropy_diversity
         })
 
     def track_fitness(self, fitness_values):
@@ -211,7 +222,7 @@ class Algorithm_Elitist(Evolution):
 
 class Algorithm_Diverse(Evolution):
     def __init__(self, enemy=[1], n_neurons=10, low_weight=-1, upp_weight=1, pop_size=100, max_gens=30, 
-                 initial_step_size=0.1, tau=None):
+                 initial_step_size=0.9, tau=None):
         self.initial_step_size = initial_step_size  # Set this before calling super().__init__
         super().__init__(enemy=enemy, n_neurons=n_neurons, low_weight=low_weight,
                          upp_weight=upp_weight, pop_size=pop_size, max_gens=max_gens)
