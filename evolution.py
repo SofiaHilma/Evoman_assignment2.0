@@ -13,7 +13,7 @@ from plotting_funcs import plot_avg_fitness, plot_avg_diversity
 
 # Select simulation settings
 enemy_list = [1,2,3]
-n_runs = 1
+n_runs = 10
 max_gens = 30
 
 os.environ['SDL_VIDEODRIVER'] = 'dummy'

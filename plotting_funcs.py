@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 rcParams['font.family'] = "serif"     
-rcParams['font.size']=17
+rcParams['font.size']=10
 from scipy.spatial.distance import pdist, squareform
 
 def plot_avg_fitness(enemy, folder=None, ax=None, legend=True):
