@@ -6,40 +6,41 @@ rcParams['font.family'] = "serif"
 rcParams['font.size']=17
 from scipy.spatial.distance import pdist, squareform
 
-def plot_avg_fitness(enemy, folder=None, ax=None, legend=True):
+# elitist_fitness = pd.read_csv(f'{folder}/enemy_{enemy}/elitist_enemy{enemy}.csv')
+# diverse_fitness = pd.read_csv(f'{folder}/enemy_{enemy}/diverse_enemy{enemy}.csv')
+
+def plot_avg_fitness(enemy,alg1,alg2, ax=None, legend=True):
     '''Creates plot of averaged fitness per algorithm as well as best performing
      individual at every generation. '''
     
-    # Read elitist data
-    elitist_fitness = pd.read_csv(f'{folder}/enemy_{enemy}/elitist_enemy{enemy}.csv')
-    mean_elitist = elitist_fitness.groupby('Generation')['Mean Fitness'].mean()
-    std_elitist = elitist_fitness.groupby('Generation')['Std Fitness'].mean()
-    best_elitist = elitist_fitness.groupby('Generation')['Best Fitness'].max()
+    # Read alg1 data
+    mean_alg1 =  alg1.groupby('Generation')['Mean Fitness'].mean()
+    std_alg1 =   alg1.groupby('Generation')['Std Fitness'].mean()
+    best_alg1 =  alg1.groupby('Generation')['Best Fitness'].max()
 
-    # Read diverse data
-    diverse_fitness = pd.read_csv(f'{folder}/enemy_{enemy}/diverse_enemy{enemy}.csv')
-    mean_diverse = diverse_fitness.groupby('Generation')['Mean Fitness'].mean()
-    std_diverse = diverse_fitness.groupby('Generation')['Std Fitness'].mean()
-    best_diverse = diverse_fitness.groupby('Generation')['Best Fitness'].max()
+    # Read alg2 data
+    mean_alg2 =  alg2.groupby('Generation')['Mean Fitness'].mean()
+    std_alg2 =   alg2.groupby('Generation')['Std Fitness'].mean()
+    best_alg2 =  alg2.groupby('Generation')['Best Fitness'].max()
 
     if ax is None:
         plt.figure(figsize=(10, 6), dpi=300)
 
-        # Plot average elitist + std
-        plt.plot(mean_elitist.index, mean_elitist.values, label='Elitist', color='#69515A')
-        plt.fill_between(mean_elitist.index,
-                        np.array(mean_elitist.values) - np.array(std_elitist.values),
-                        np.array(mean_elitist.values) + np.array(std_elitist.values),
+        # Plot average alg1 + std
+        plt.plot(mean_alg1.index, mean_alg1.values, label='alg1', color='#69515A')
+        plt.fill_between(mean_alg1.index,
+                        np.array(mean_alg1.values) - np.array(std_alg1.values),
+                        np.array(mean_alg1.values) + np.array(std_alg1.values),
                         color='#69515A', alpha=0.2)
-        plt.plot(mean_elitist.index, best_elitist, label='Best Elitist', color='#59935C')
+        plt.plot(mean_alg1.index, best_alg1, label='Best alg1', color='#59935C')
         
-        # Plot average diverse + std
-        plt.plot(mean_diverse.index, mean_diverse.values, label='Diverse', color='#59935C')
-        plt.fill_between(mean_diverse.index,
-                        np.array(mean_diverse.values) - np.array(std_diverse.values),
-                        np.array(mean_diverse.values) + np.array(std_diverse.values),
+        # Plot average alg2 + std
+        plt.plot(mean_alg2.index, mean_alg2.values, label='alg2', color='#59935C')
+        plt.fill_between(mean_alg2.index,
+                        np.array(mean_alg2.values) - np.array(std_alg2.values),
+                        np.array(mean_alg2.values) + np.array(std_alg2.values),
                         color='#59935C', alpha=0.2)
-        plt.plot(mean_elitist.index, best_diverse, label='Best Diverse', color='darkolivegreen')
+        plt.plot(mean_alg1.index, best_alg2, label='Best alg2', color='darkolivegreen')
 
         plt.title(f'Average fitness for both algorithms against enemy {enemy}')
         plt.xlabel('Generation number')
@@ -48,24 +49,24 @@ def plot_avg_fitness(enemy, folder=None, ax=None, legend=True):
         if legend:
             plt.legend()
         plt.show()
-        plt.savefig(f'{folder}/enemy_{enemy}/fitness_plot_enemy{enemy}.png', bbox_inches='tight')
+        # plt.savefig(f'{folder}/enemy_{enemy}/fitness_plot_enemy{enemy}.png', bbox_inches='tight')
         plt.close()
     else:
-        # Plot average elitist + std
-        ax.plot(mean_elitist.index, mean_elitist.values, label='Elitist', color='#69515A')
-        ax.fill_between(mean_elitist.index,
-                        np.array(mean_elitist.values) - np.array(std_elitist.values),
-                        np.array(mean_elitist.values) + np.array(std_elitist.values),
+        # Plot average alg1 + std
+        ax.plot(mean_alg1.index, mean_alg1.values, label='alg1', color='#69515A')
+        ax.fill_between(mean_alg1.index,
+                        np.array(mean_alg1.values) - np.array(std_alg1.values),
+                        np.array(mean_alg1.values) + np.array(std_alg1.values),
                         color='#69515A', alpha=0.2)
-        ax.plot(mean_elitist.index, best_elitist, label='Best Elitist', color='#59935C')
+        ax.plot(mean_alg1.index, best_alg1, label='Best alg1', color='#59935C')
         
-        # Plot average diverse + std
-        ax.plot(mean_diverse.index, mean_diverse.values, label='Diverse', color='#59935C')
-        ax.fill_between(mean_diverse.index,
-                        np.array(mean_diverse.values) - np.array(std_diverse.values),
-                        np.array(mean_diverse.values) + np.array(std_diverse.values),
+        # Plot average alg2 + std
+        ax.plot(mean_alg2.index, mean_alg2.values, label='alg2', color='#59935C')
+        ax.fill_between(mean_alg2.index,
+                        np.array(mean_alg2.values) - np.array(std_alg2.values),
+                        np.array(mean_alg2.values) + np.array(std_alg2.values),
                         color='#59935C', alpha=0.2)
-        ax.plot(mean_elitist.index, best_diverse, label='Best Diverse', color='darkolivegreen')
+        ax.plot(mean_alg1.index, best_alg2, label='Best alg2', color='darkolivegreen')
 
         ax.set_title(f'Enemy {enemy}')
         ax.set_xlabel('Generation')
@@ -77,26 +78,26 @@ def plot_avg_fitness(enemy, folder=None, ax=None, legend=True):
 
 def plot_avg_diversity(enemies, folder=None, ax=None, legend=True):
     '''Creates plot of averaged diversity per algorithm, averaged over all specialists against all enemies.'''
-    elitist = pd.DataFrame()
-    diverse = pd.DataFrame()
+    alg1 = pd.DataFrame()
+    alg2 = pd.DataFrame()
     
     # Read diversity data
     for enemy in enemies:
-        enemy_elitist = pd.read_csv(f'{folder}/elitist_div_enemy{enemy}.csv')
-        elitist = pd.concat([elitist,enemy_elitist])
-        enemy_diverse = pd.read_csv(f'{folder}/diverse_div_enemy{enemy}.csv')
-        diverse = pd.concat([diverse,enemy_diverse])
+        enemy_alg1 = pd.read_csv(f'{folder}/alg1_div_enemy{enemy}.csv')
+        alg1 = pd.concat([alg1,enemy_alg1])
+        enemy_alg2 = pd.read_csv(f'{folder}/alg2_div_enemy{enemy}.csv')
+        alg2 = pd.concat([alg2,enemy_alg2])
 
     # Average all data
-    mean_elitist_div = elitist.groupby('generation')['mean_pairwise_distance'].mean()
-    mean_diverse_div = diverse.groupby('generation')['mean_pairwise_distance'].mean()
+    mean_alg1_div = alg1.groupby('generation')['mean_pairwise_distance'].mean()
+    mean_alg2_div = alg2.groupby('generation')['mean_pairwise_distance'].mean()
 
     # Plot
     if ax is None:
         plt.figure(figsize=(10, 6), dpi=300)
 
-        plt.plot(mean_elitist_div.index, mean_elitist_div.values, label='Elitist', color='indianred')
-        plt.plot(mean_diverse_div.index, mean_diverse_div.values, label='Diverse', color='green')
+        plt.plot(mean_alg1_div.index, mean_alg1_div.values, label='alg1', color='indianred')
+        plt.plot(mean_alg2_div.index, mean_alg2_div.values, label='alg2', color='green')
         plt.xlabel('Generation')
         plt.ylabel('Mean Pairwise Distance')
         plt.title('Genetic Diversity Over Generations')
@@ -108,8 +109,8 @@ def plot_avg_diversity(enemies, folder=None, ax=None, legend=True):
         plt.savefig(f'{folder}/diversity_plot.png', bbox_inches='tight')
         plt.close()
     else:
-        ax.plot(mean_elitist_div.index, mean_elitist_div.values, label='Elitist', color='indianred')
-        ax.plot(mean_diverse_div.index, mean_diverse_div.values, label='Diverse', color='green')
+        ax.plot(mean_alg1_div.index, mean_alg1_div.values, label='alg1', color='indianred')
+        ax.plot(mean_alg2_div.index, mean_alg2_div.values, label='alg2', color='green')
         ax.set_xlabel('Generation')
         ax.set_ylabel('Mean Pairwise Distance')
         ax.set_title('Genetic Diversity')
