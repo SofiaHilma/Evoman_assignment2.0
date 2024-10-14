@@ -272,7 +272,8 @@ class Evolution:
                 fitness_values = self.simulate()  # Method to evaluate population (assumed in Evolution)
 
                 # Step 2: Select parents using the specified selection method
-                parents = self.fitness_sharing(self.population, fitness_values, n_parents=n_parents)
+                parent_ind = self.fitness_sharing(self.population, fitness_values, n_parents=n_parents)
+                parents = self.population[parent_ind]
 
                 # Step 2: Generate Offspring via Crossover
                 offspring = self.diverse_crossover(parents, n_offspring=self.pop_size)
@@ -293,10 +294,11 @@ class Evolution:
                 combined_fitness = np.concatenate((fitness_values, offspring_fitness))
 
                 # Step 6: Survivor Selection (use the specified method for replacement)
-                self.population = self.roulette_wheel_selection(combined_population, combined_fitness, n_parents=self.pop_size)
-
+                surv_ind = self.roulette_wheel_selection(combined_population, combined_fitness, n_parents=self.pop_size)
+                self.population = combined_population[surv_ind]
+                
                 # Step 6: Track fitness metrics
-                self.track_fitness(combined_fitness[:self.pop_size])
+                self.track_fitness(combined_fitness[surv_ind])
 
                 # Optional: Track genetic diversity metrics
                 if track_diversity:
@@ -310,8 +312,9 @@ class Evolution:
                 fitness_values = self.simulate()  # Method to evaluate population (assumed in Evolution)
 
                 # Step 2: Select parents using the specified selection method
-                parents = self.roulette_wheel_selection(self.population, fitness_values, n_parents=n_parents)
-
+                parent_ind = self.roulette_wheel_selection(self.population, fitness_values, n_parents=n_parents)
+                parents = self.population[parent_ind]
+                
                 # Step 2: Generate Offspring via Crossover
                 offspring = self.basic_crossover(parents, n_offspring=self.pop_size)
 
@@ -331,10 +334,11 @@ class Evolution:
                 combined_fitness = np.concatenate((fitness_values, offspring_fitness))
 
                 # Step 6: Survivor Selection (use the specified method for replacement)
-                self.population = self.roulette_wheel_selection(combined_population, combined_fitness, n_parents=self.pop_size)
-
+                surv_ind = self.roulette_wheel_selection(combined_population, combined_fitness, n_parents=self.pop_size)
+                self.population = combined_population[surv_ind]
+                
                 # Step 6: Track fitness metrics
-                self.track_fitness(combined_fitness[:self.pop_size])
+                self.track_fitness(combined_fitness[surv_ind])
 
                 # Optional: Track genetic diversity metrics
                 if track_diversity:
@@ -345,7 +349,7 @@ class Evolution:
                     if abs(self.mean_fitness_over_time[-1] - self.mean_fitness_over_time[-2]) < 10 and self.mean_fitness_over_time[-1]<90:
                         counter += 1 
                     
-        best_index = np.argsort(combined_fitness[:self.pop_size])[-1:]
+        best_index = np.argsort(combined_fitness[surv_ind])[-1:]
         self.best_individual = [self.population[best_index],combined_fitness[best_index]]
 
     
@@ -361,7 +365,8 @@ class Evolution:
             fitness_values = self.simulate()  # Method to evaluate population (assumed in Evolution)
 
             # Step 2: Select parents using the specified selection method
-            parents = self.fitness_sharing(self.population, fitness_values, n_parents=n_parents)
+            parent_ind = self.fitness_sharing(self.population, fitness_values, n_parents=n_parents)
+            parents = self.population[parent_ind]
 
             # Step 2: Generate Offspring via Crossover
             offspring = self.diverse_crossover(parents, n_offspring=self.pop_size)
@@ -382,16 +387,17 @@ class Evolution:
             combined_fitness = np.concatenate((fitness_values, offspring_fitness))
 
             # Step 6: Survivor Selection (use the specified method for replacement)
-            self.population = self.roulette_wheel_selection(combined_population, combined_fitness, n_parents=self.pop_size)
+            surv_ind = self.roulette_wheel_selection(combined_population, combined_fitness, n_parents=self.pop_size)
+            self.population = combined_population[surv_ind]
 
             # Step 6: Track fitness metrics
-            self.track_fitness(combined_fitness[:self.pop_size])
+            self.track_fitness(combined_fitness[surv_ind])
 
             # Optional: Track genetic diversity metrics
             if track_diversity:
                 self.track_diversity(self.population, generation)
 
-        best_index = np.argsort(combined_fitness[:self.pop_size])[-1:]
+        best_index = np.argsort(combined_fitness[surv_ind])[-1:]
         self.best_individual = [self.population[best_index],combined_fitness[best_index]]
 
 
