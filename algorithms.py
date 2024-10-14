@@ -64,12 +64,37 @@ class Evolution:
                          upp_weight=upp_weight, pop_size=pop_size, max_gens=max_gens)'''
 
     def roulette_wheel_selection(self, population, fitness, n_parents):
+        # OLD ROULETTE WHEEL (NO SCALING I THINK)
+
+        # Ensure the population is a NumPy array
+        population = np.array(population)
+
+        # Ensure fitness values are non-negative
+        fitness = np.maximum(fitness, 0)  # This makes all negative fitness values zero
+
+        # Calculate total fitness
+        total_fitness = np.sum(fitness)
+
+        # If total fitness is zero, use uniform random selection
+        if total_fitness == 0:
+            probabilities = np.ones(len(fitness)) / len(fitness)
+        else:
+            # Otherwise, calculate the probabilities proportional to fitness
+            probabilities = fitness / total_fitness
+
+        # Perform roulette wheel selection based on the calculated probabilities
+        selected_indices = np.random.choice(len(population), size=n_parents, p=probabilities, replace=True)
+
+        # Return the selected individuals, ensuring population is indexed as a NumPy array
+        return population[selected_indices]
+    
+        # MY ROULETTE WHEEL
         """
         Roulette wheel selection (fitness-proportional selection).
         Selects individuals based on their fitness proportionally.
         Returns the selected individuals in a list.
         """
-        # Ensure the population is a NumPy array
+        '''# Ensure the population is a NumPy array
         population = np.array(population)
 
         # Normalise fitness values
@@ -95,7 +120,7 @@ class Evolution:
         # Perform roulette wheel selection based on the calculated probabilities
         selected_indices = np.random.choice(len(population), size=n_parents, p=probabilities, replace=True)
 
-        return population[selected_indices]
+        return population[selected_indices]'''
 
 
 
@@ -129,7 +154,7 @@ class Evolution:
     
     
     # Uniform mutation 
-    def basic_mutation(self, individual, mutation_rate):
+    def diverse_mutation(self, individual, mutation_rate):
         """
         Each gene has a mutation_rate chance of being replaced with a new random value.
         """
@@ -223,7 +248,7 @@ class Evolution:
 
         return np.array(offspring)
 
-    def diverse_mutation(self, individual, mutation_rate, scale=0.4):
+    def basic_mutation(self, individual, mutation_rate, scale=0.6):
         # Implement mutation with a Cauchy distribution
         for i in range(len(individual)):
             if np.random.random() < mutation_rate:
@@ -241,7 +266,7 @@ class Evolution:
         counter = 0
         for generation in range(1, self.max_gens + 1):
 
-            if counter == 3:
+            if counter == 2:
                 # Trigger diversity
                 # Step 1: Evaluate fitness of the current population
                 fitness_values = self.simulate()  # Method to evaluate population (assumed in Evolution)
@@ -277,6 +302,8 @@ class Evolution:
                 if track_diversity:
                     self.track_diversity(self.population, generation)
                 counter = 0
+
+                print(f'Diversity was triggered at generation:{generation}')
 
             else: 
                 # Step 1: Evaluate fitness of the current population
@@ -315,7 +342,7 @@ class Evolution:
 
                 # If the fitness hasn't improved more than?? and if the fitness is below 90 add to the counter
                 if len(self.mean_fitness_over_time) > 1:  # Check if there are at least two elements
-                    if abs(self.mean_fitness_over_time[-1] - self.mean_fitness_over_time[-2]) < 5 and self.mean_fitness_over_time[-1]<90:
+                    if abs(self.mean_fitness_over_time[-1] - self.mean_fitness_over_time[-2]) < 10 and self.mean_fitness_over_time[-1]<90:
                         counter += 1 
                     
         best_index = np.argsort(combined_fitness[:self.pop_size])[-1:]

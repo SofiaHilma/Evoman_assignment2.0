@@ -112,20 +112,20 @@ def plot_avg_fitness(enemygroup, folder=None, ax=None, legend=True):
         fig, ax = plt.subplots(figsize=(10, 6), dpi=300)
 
     # Plot average triggered diverse + std
-    ax.plot(mean_triggered_diverse.index, mean_triggered_diverse.values, label='Triggered Diverse', color='#69515A')
+    ax.plot(mean_triggered_diverse.index, mean_triggered_diverse.values, label='Triggered Diverse', color='#6B518E')
     ax.fill_between(mean_triggered_diverse.index,
                     mean_triggered_diverse.values - std_triggered_diverse.values,
                     mean_triggered_diverse.values + std_triggered_diverse.values,
                     color='#69515A', alpha=0.2)
-    ax.plot(mean_triggered_diverse.index, best_triggered_diverse, label='Best Triggered Diverse', color='#59935C')
+    ax.plot(mean_triggered_diverse.index, best_triggered_diverse, label='Best Triggered Diverse', color='#C8A9E0')
     
     # Plot average diverse + std
-    ax.plot(mean_diverse.index, mean_diverse.values, label='Diverse', color='#59935C')
+    ax.plot(mean_diverse.index, mean_diverse.values, label='Diverse', color='#3E6732')
     ax.fill_between(mean_diverse.index,
                     mean_diverse.values - std_diverse.values,
                     mean_diverse.values + std_diverse.values,
                     color='#59935C', alpha=0.2)
-    ax.plot(mean_diverse.index, best_diverse, label='Best Diverse', color='darkolivegreen')
+    ax.plot(mean_diverse.index, best_diverse, label='Best Diverse', color='#A3D9A4')
 
     # Add titles and labels
     ax.set_title(f'Average fitness for both algorithms against enemy group {enemygroup}')
@@ -178,9 +178,11 @@ def plot_avg_diversity(enemygroup, folder=None, ax=None, legend=True):
         if legend:
             plt.legend()
         plt.grid(True)
+        
+        #plt.savefig(f'{folder}/diversity_plot.png', bbox_inches='tight')
+        plt.savefig(f'{folder}/enemy_group_{enemygroup}/diversity_plot_enemy{enemygroup}.png', bbox_inches='tight')
         plt.show()
 
-        plt.savefig(f'{folder}/diversity_plot.png', bbox_inches='tight')
         plt.close()
     else:
         ax.plot(mean_triggered_diverse_diversity.index, mean_triggered_diverse_diversity.values, label='Triggered Diverse', color='indianred')

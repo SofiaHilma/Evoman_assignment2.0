@@ -28,8 +28,8 @@ PSEUDOCODE:
 enemy_group1 = [1,2,3]
 enemy_group2 = [4,5,6] # now we'll run experiments not per enemy in list but per entire list (so two times)
 
-n_runs = 5
-max_gens = 10
+n_runs = 1
+max_gens = 3
 
 folder = 'experiments'
 if not os.path.exists(folder):
@@ -154,7 +154,7 @@ for enemy_group in [enemy_group1, enemy_group2]:
 
     # Plot average fitness and diversity
     plot_avg_fitness(enemy_group_str, folder=folder)
-    #plot_avg_diversity(enemy_group_str, folder=folder)
+    plot_avg_diversity(enemy_group_str, folder=folder)
     print(f'Plots for Enemy {enemy_group_str} generated succesfully.')
 
 print('\nAll Experiments Completed.')
