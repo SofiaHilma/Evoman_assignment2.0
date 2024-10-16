@@ -1,170 +1,78 @@
-from matplotlib import rcParams
-rcParams['font.family'] = "serif"     
-rcParams['font.size']=17
-from evoman.environment import Environment
-from demo_controller import player_controller
-from matplotlib import rcParams
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import os
+import ast
+from evoman.environment import Environment
+from demo_controller import player_controller
 
-enemy_list = [1,2,3]
-n_neuron = 10
-    
+# Step 1: Load Best Individuals from Multiple CSV Files
+def load_genomes_from_directory(directory, string, nostring):
+    """Load all best individuals from CSV files in the directory."""
+    genomes = []
+    for filename in os.listdir(directory):
+        if string in filename and nostring not in filename:
+            file_path = os.path.join(directory, filename)
+            df = pd.read_csv(file_path)
 
-elitist_alg_best_ind = [] # three best individuals when run against enemy 1,2,3 respectively
-diverse_alg_best_ind = [] # three best individuals when run against enemy 1,2,3 respectively
+            genome_string = df['Genome'].values[0]
+            genome_string_cleaned = genome_string.replace('[', '').replace(']', '').strip()
 
-scores_of_EliAlg_run_against_en1 = [] # There will be 5+5+5 scores in each list
-scores_of_EliAlg_run_against_en2 = [] 
-scores_of_EliAlg_run_against_en3 = []
-scores_of_DivAlg_run_against_en1 = []
-scores_of_DivAlg_run_against_en2 = []
-scores_of_DivAlg_run_against_en3 = []
+            # Split the cleaned string by spaces and convert to a list of floats
+            genome = [float(num) for num in genome_string_cleaned.split()]
 
-path1 = 'experiments/enemy_1'
-path2 = 'experiments/enemy_2'
-path3 = 'experiments/enemy_3'
-# Extract the best individuals from the csv files
-# Elitist
-elitist_best = pd.read_csv(f'{path1}/elitist_best_enemy1.csv') # Elitist - enemy1
-eli_ordered_best = elitist_best.sort_values(by='Fitness', ascending=False)
-eli_best_string = eli_ordered_best['Genome'][0]
-eli_best_stripped = eli_best_string.replace('[', '').replace(']', '')
-eli_best_genome_enemy1 = [float(x) for x in eli_best_stripped.split()]
-elitist_alg_best_ind.append(eli_best_genome_enemy1) 
+            # Append the genome list to the result
+            genomes.append(genome)
+    return genomes
+# Directory paths for the saved best individuals
+triggered_diverse_dir = "C:/Users/anube/evoman_framework/experiments/enemy_group_1_2_3"
+diverse_dir = "C:/Users/anube/evoman_framework/experiments/enemy_group_1_2_3"
 
-elitist_best = pd.read_csv(f'{path2}/elitist_best_enemy2.csv') # Elitist - enemy2
-eli_ordered_best = elitist_best.sort_values(by='Fitness', ascending=False)
-eli_best_string = eli_ordered_best['Genome'][0]
-eli_best_stripped = eli_best_string.replace('[', '').replace(']', '')
-eli_best_genome_enemy2 = [float(x) for x in eli_best_stripped.split()]
-elitist_alg_best_ind.append(eli_best_genome_enemy2) 
+genomes_triggered = np.array(load_genomes_from_directory(triggered_diverse_dir, "triggered", "gnome"))
+genomes_diverse = np.array(load_genomes_from_directory(diverse_dir, "diverse", "triggered"))
 
-elitist_best = pd.read_csv(f'{path3}/elitist_best_enemy3.csv') # Elitist - enemy3
-eli_ordered_best = elitist_best.sort_values(by='Fitness', ascending=False)
-eli_best_string = eli_ordered_best['Genome'][0]
-eli_best_stripped = eli_best_string.replace('[', '').replace(']', '')
-eli_best_genome_enemy3 = [float(x) for x in eli_best_stripped.split()]
-elitist_alg_best_ind.append(eli_best_genome_enemy3) 
-
-# Diverse
-diverse_best = pd.read_csv(f'{path1}/diverse_best_enemy1.csv') # Diverse - enemy1
-div_ordered_best = diverse_best.sort_values(by='Fitness', ascending=False)
-div_best_string = div_ordered_best['Genome'][0]
-div_best_stripped = div_best_string.replace('[', '').replace(']', '')
-div_best_genome_enemy1 = [float(x) for x in div_best_stripped.split()]
-diverse_alg_best_ind.append(div_best_genome_enemy1) 
+# Define the enemy groups
+enemy_group1 = [1, 2, 3]
+enemy_group2 = [4, 5, 6]
 
 
-diverse_best = pd.read_csv(f'{path2}/diverse_best_enemy2.csv') # Diverse - enemy2
-div_ordered_best = diverse_best.sort_values(by='Fitness', ascending=False)
-div_best_string = div_ordered_best['Genome'][0]
-div_best_stripped = div_best_string.replace('[', '').replace(']', '')
-div_best_genome_enemy2 = [float(x) for x in div_best_stripped.split()]
-diverse_alg_best_ind.append(div_best_genome_enemy2) 
+# This function will run an individual (genome) against all enemies and calculate the gain
+def evaluate_individual_against_enemies(genome, enemies):
+    """Simulate the individual with the given genome against all enemies and return gains."""
+    env = Environment(enemies=enemies, multiplemode="yes", player_controller=player_controller(10), logs = "off", savelogs="no")
+    fitness, player_life, enemy_life, time = env.play(pcont=genome)
+
+    # Calculate gain as player health - enemy health
+    total_gain = player_life - enemy_life
+
+    return total_gain
 
 
-diverse_best = pd.read_csv(f'{path3}/diverse_best_enemy3.csv') # Diverse - enemy3
-div_ordered_best = diverse_best.sort_values(by='Fitness', ascending=False)
-div_best_string = div_ordered_best['Genome'][0]
-div_best_stripped = div_best_string.replace('[', '').replace(']', '')
-div_best_genome_enemy3 = [float(x) for x in div_best_stripped.split()]
-diverse_alg_best_ind.append(div_best_genome_enemy3)
+# Evaluate all genomes from both algorithms
+def evaluate_all_genomes(genomes, enemy_group):
+    gains = []
+    for genome in genomes:
+        gain = evaluate_individual_against_enemies(genome, enemy_group)
+        gains.append(gain)
+    return gains
 
 
-
-# Pairs of enemies to test each individual against
-enemy_pairs = [(1, 2), (0, 2), (0, 1)]
-
-
-for i in range(3): # Go through the 6 individuals, but they are in 2 lists of three
-    k, l = enemy_pairs[i]  # Select the enemy pairs to test against (the ones it was not run against before)
-
-    for j in range(5): # -> we'll have 6 lists of 10 scores
-        env = Environment(enemies=[i+1], logs="off", savelogs="no")
-    
-        # Test Elitist individual i against enemy k and l
-        best_elitist_individual = np.array(elitist_alg_best_ind[i])
-        best_diverse_individual = np.array(diverse_alg_best_ind[i])
-
-        _, player_energy_against_k_eli, enemy_energy_k_eli, _ = env.play(best_elitist_individual, enemy_list[0]) # Test 'elitist alg run against i' against enemy k
-        score_against_k_eli = player_energy_against_k_eli - enemy_energy_k_eli
-        print(f"Scores (Elitist against enemy {k}): {score_against_k_eli}")
-
-        _, player_energy_against_l_eli, enemy_energy_l_eli, _ = env.play(best_elitist_individual, enemy_list[1]) # Test 'elitist alg run against i' against enemy l
-        score_against_l_eli = player_energy_against_l_eli - enemy_energy_l_eli       
-
-        _, player_energy_against_l_eli, enemy_energy_l_eli, _ = env.play(best_elitist_individual, enemy_list[2]) 
-        score_against_3_eli = player_energy_against_l_eli - enemy_energy_l_eli       
-
-        _, player_energy_against_k_div, enemy_energy_k_div, _ = env.play(best_diverse_individual, enemy_list[0]) # Test 'diverse alg run against i' against enemy k
-        score_against_k_div = player_energy_against_k_div - enemy_energy_k_div
-
-        _, player_energy_against_l_div, enemy_energy_l_div, _ = env.play(best_diverse_individual, enemy_list[1]) # Test 'diverse alg run against i' against enemy l
-        score_against_l_div = player_energy_against_l_div - enemy_energy_l_div      
-
-        _, player_energy_against_k_div, enemy_energy_k_div, _ = env.play(best_diverse_individual, enemy_list[2]) 
-        score_against_3_div = player_energy_against_k_div - enemy_energy_k_div
-
-        # Append results to the lists
-        if i == 0:
-            scores_of_EliAlg_run_against_en1.append(score_against_k_eli)
-            scores_of_EliAlg_run_against_en1.append(score_against_l_eli)
-            scores_of_EliAlg_run_against_en1.append(score_against_3_eli)
-            scores_of_DivAlg_run_against_en1.append(score_against_k_div)
-            scores_of_DivAlg_run_against_en1.append(score_against_l_div)
-            scores_of_DivAlg_run_against_en1.append(score_against_3_div)
-        elif i == 1:
-            scores_of_EliAlg_run_against_en2.append(score_against_k_eli)
-            scores_of_EliAlg_run_against_en2.append(score_against_l_eli)
-            scores_of_EliAlg_run_against_en1.append(score_against_3_eli)
-            scores_of_DivAlg_run_against_en2.append(score_against_k_div)
-            scores_of_DivAlg_run_against_en2.append(score_against_l_div)
-            scores_of_DivAlg_run_against_en1.append(score_against_3_div)
-        elif i == 2:
-            scores_of_EliAlg_run_against_en3.append(score_against_k_eli)
-            scores_of_EliAlg_run_against_en3.append(score_against_l_eli)
-            scores_of_EliAlg_run_against_en1.append(score_against_3_eli)
-            scores_of_DivAlg_run_against_en3.append(score_against_k_div)
-            scores_of_DivAlg_run_against_en3.append(score_against_l_div)
-            scores_of_DivAlg_run_against_en1.append(score_against_3_div)
+# Now, evaluate all individuals for each algorithm and enemy group
+triggered_gains_group1 = evaluate_all_genomes(genomes_triggered, enemy_group1)
+triggered_gains_group2 = evaluate_all_genomes(genomes_triggered, enemy_group2)
+diverse_gains_group1 = evaluate_all_genomes(genomes_diverse, enemy_group1)
+diverse_gains_group2 = evaluate_all_genomes(genomes_diverse, enemy_group2)
 
 
+def plot_boxplot(data, title):
+    plt.figure(figsize=(10, 6))
+    plt.boxplot(data, labels=["Algorithm 1", "Algorithm 2"])
+    plt.title(title)
+    plt.ylabel("Gain (Player Health - Enemy Health)")
+    plt.grid(True)
+    plt.show()
 
 
-        # find the average of each list? Not sure if it's necessary for boxplot
-
-# Boxplot below
-
-data = [scores_of_EliAlg_run_against_en1, scores_of_DivAlg_run_against_en1, scores_of_EliAlg_run_against_en2, scores_of_DivAlg_run_against_en2, scores_of_EliAlg_run_against_en3, scores_of_DivAlg_run_against_en3]
-
-# Create boxplot
-plt.figure(figsize=(8, 5))
-plt.boxplot(data, labels=[
-    'El x 1', 'Div x 1',
-    'El x 2', 'Div x 2',
-    'El x 3', 'Div x 3'
-])
-plt.title('Averaged gain of best performing genomes')
-plt.ylabel('Individual gain')
-# plt.grid(True)
-plt.show()
-
-from scipy import stats
-# Perform statistical tests
-# Example: T-tests comparing each pair of algorithms for each enemy
-for i in range(3):
-    elitist_data = scores_of_EliAlg_run_against_en1  
-    diverse_data = scores_of_DivAlg_run_against_en1
-    
-    # T-test (use appropriate test depending on your data distribution)
-    t_stat, p_value = stats.ttest_ind(elitist_data, diverse_data)
-
-    print(f"Enemy {i + 1} - T-test results: t-statistic = {t_stat:.4f}, p-value = {p_value:.4f}")
-    
-    # Check if p-value is significant at 0.05 level
-    if p_value < 0.05:
-        print(f"Significant difference between Elitist and Diverse for Enemy {i + 1}.")
-    else:
-        print(f"No significant difference between Elitist and Diverse for Enemy {i+1}.")
+# Plot for both enemy groups
+plot_boxplot([triggered_gains_group1, diverse_gains_group1], "Gain Comparison for Enemy Group 1")
+plot_boxplot([triggered_gains_group2, diverse_gains_group2], "Gain Comparison for Enemy Group 2")
