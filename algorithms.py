@@ -208,11 +208,19 @@ class Algorithm_Elitist(Evolution):
 
 
 class Algorithm_Diverse(Evolution):
-    def __init__(self, enemy=[1], n_neurons=10, low_weight=-1, upp_weight=1, pop_size=100, max_gens=30):
+    def __init__(self, enemy=[1], n_neurons=10, low_weight=-1, upp_weight=1, pop_size=100, max_gens=30, 
+                 initial_step_size=0.1, tau=None):
         # Call the superclass __init__ method to initialize population and other attributes
         super().__init__(enemy=enemy, n_neurons=n_neurons, low_weight=low_weight,
                          upp_weight=upp_weight, pop_size=pop_size, max_gens=max_gens)
         self.diversity_over_time = []
+        self.initial_step_size = initial_step_size
+        self.tau = tau if tau is not None else 1 / np.sqrt(self.n_vars) # Learning rate
+
+    def create_population(self):
+        weights = super().create_population()   # Create initial weights
+        step_sizes = np.full((self.pop_size, 1), self.initial_step_size)    # Each weight has a single step size
+        return np.hstack((weights, step_sizes)) # Stack them upon each other, now each weight is followed by a step size
 
     def fitness_sharing(self, population, fitness, n_parents, sigma_share=0.3):
         n_parents = min(n_parents, len(population))
@@ -266,27 +274,54 @@ class Algorithm_Diverse(Evolution):
         return population[selected_indices]
 
 
-    def mutation(self, individual, mutation_rate, scale=0.4):
-        # Implement mutation with a Cauchy distribution
-        for i in range(len(individual)):
-            if np.random.random() < mutation_rate:
-                individual[i] += np.random.standard_cauchy() * scale
-                individual[i] = np.clip(individual[i], self.low_weight, self.upp_weight)
-        return individual
+    def mutation(self, individual):
+        weights = individual[:-1]
+        step_size = individual[-1]
+
+        # Mutate step size
+        step_size *= np.exp(self.tau * np.random.normal(0, 1))
+
+        # Mutate weights using the step size
+        for i in range(len(weights)):
+            weights[i] += step_size * np.random.normal(0, 1)
+
+        weights = np.clip(weights, self.low_weight, self.upp_weight)
+        return np.append(weights, step_size)
 
     def crossover(self, parents, n_offspring):
         # Generate pool from parents
-        gene_pool = [[] for _ in range(len(parents[0]))]
+        gene_pool = [[] for _ in range(len(parents[0]) - 1)]
         for parent in parents:
-            for gene in range(len(parent)):
+            for gene in range(len(parent) - 1):
                 gene_pool[gene].append(parent[gene])
 
-        offspring = [[] for _ in range(n_offspring)]
-
-        # Create children from pool
-        for child in range(n_offspring):
-            for gene in range(len(parents[0])):
-                offspring[child].append(np.random.choice(gene_pool[gene]))
+        offspring = []
+        for _ in range(n_offspring):
+            # Randomly selecting genes from the pool for each weight
+            child = [np.random.choice(gene_pool[i]) for i in range(len(gene_pool))]
+            # Calculate the average step size of all parents
+            step_size = np.mean([parent[-1] for parent in parents])
+            child.append(step_size)
+            offspring.append(child)
 
         return np.array(offspring)
+
+    def evolve(self, parent_selection, survival_selection, n_parents=10, track_diversity=True):
+        for generation in range(self.max_gens):
+            fitness_values = self.simulate(self.population[:, :-1])  # Exclude step size when simulating
+
+            parents = parent_selection(self.population, fitness_values, n_parents=n_parents)
+            offspring = self.crossover(parents, self.pop_size)
+            mutated_offspring = np.array([self.mutation(ind) for ind in offspring])
+
+            combined_population = np.vstack((self.population, mutated_offspring))
+            combined_fitness = np.concatenate((fitness_values, self.simulate(mutated_offspring[:, :-1])))
+
+            self.population = survival_selection(combined_population, combined_fitness, self.pop_size)
+            self.track_fitness(combined_fitness[:self.pop_size])
+            if track_diversity:
+                self.track_diversity(self.population, generation)
+
+        best_index = np.argmax(self.simulate(self.population[:, :-1]))
+        self.best_individual = [self.population[best_index, :-1], self.simulate([self.population[best_index, :-1]])[0]]
 
